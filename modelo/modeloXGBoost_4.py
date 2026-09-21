@@ -53,6 +53,7 @@ def modelo_xgBoost(nombre_csv):
     carpeta_archivos_modelo.mkdir(parents=True, exist_ok=True)
 
     restaurantes = pd.read_csv(ruta_csv)
+    nombre_csv_base = ruta_csv.stem
 
     total = len(restaurantes)
     print(f"\nTotal de restaurantes: {total}")
@@ -168,9 +169,9 @@ def modelo_xgBoost(nombre_csv):
     pyplot.figure(figsize=(10, 8))
     importancias.sort_values().plot(kind='barh')
     pyplot.xlabel('Importancia (reducción de impureza)')
-    pyplot.title(f'Top 20 variables más importantes -- {nombre_csv}')
+    pyplot.title(f'Top 20 variables más importantes -- {nombre_csv_base}')
     pyplot.tight_layout()
-    pyplot.savefig(carpeta_archivos_modelo / f"importancias_{nombre_csv.replace('.csv', '')}_xgBoost_final.png",
+    pyplot.savefig(carpeta_archivos_modelo / f"importancias_{nombre_csv_base}_xgBoost_final.png",
                    dpi=300, bbox_inches='tight')
     pyplot.close()
     print("Importancia de variables guardada.")
@@ -190,7 +191,7 @@ def modelo_xgBoost(nombre_csv):
 
     print(tabla_shap.head(15).round(4))
     tabla_shap.head(15).round(4).to_csv(
-        carpeta_archivos_modelo / f"tabla_shap_{nombre_csv.replace('.csv', '')}_xgBoost_final.csv"
+        carpeta_archivos_modelo / f"tabla_shap_{nombre_csv_base}_xgBoost_final.csv"
     )
     print(tabla_shap.head(15).round(4).to_latex(float_format='%.4f'))
 
