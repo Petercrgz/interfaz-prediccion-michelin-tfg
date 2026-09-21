@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicción de Distinción Michelin</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f4f4f9; margin: 0; min-height: 100vh; color: #333; display: flex; flex-direction: column; }
+        .site-header { background: #b82329; color: white; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.85rem 2rem; }
+        .brand { color: white; font-weight: 700; text-decoration: none; }
+        .main-nav { display: flex; align-items: center; gap: 0.35rem; }
+        .nav-link { color: white; text-decoration: none; padding: 0.5rem 0.8rem; border-radius: 999px; font-size: 0.9rem; }
+        .nav-link:hover, .nav-link.active { background: white; color: #b82329; }
+        main { flex: 1; padding: 2rem; }
+        .site-footer { background: #e1e1e1; color: #555; text-align: center; padding: 1rem 2rem; font-size: 0.8rem; }
+        .container { max-width: 650px; margin: 0 auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h1 { margin-top: 0; font-size: 1.5rem; border-bottom: 2px solid #b82329; padding-bottom: 0.5rem; color: #b82329; }
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem; }
+        input[type="text"], select, .checkbox-list { width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; padding: 0.6rem; font-family: inherit; font-size: 0.95rem; color: #333; background: #fff; }
+        #ciudad { border: 1px solid #ccc; color: #333; background: #fff; }
+        .checkbox-list { max-height: 180px; overflow-y: auto; padding: 0.45rem; }
+        .search-input { margin-bottom: 0.45rem; }
+        .city-autocomplete { position: relative; }
+        .city-suggestions { display: none; position: absolute; z-index: 10; top: calc(100% + 0.25rem); left: 0; right: 0; max-height: 220px; overflow-y: auto; margin: 0; padding: 0.25rem; list-style: none; background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.12); }
+        .city-suggestions.visible { display: block; }
+        .city-suggestion { padding: 0.6rem; color: #333; cursor: pointer; border-radius: 3px; }
+        .city-suggestion:hover, .city-suggestion.highlighted { background: #f8e8e8; color: #b82329; }
+        .city-empty { padding: 0.6rem; color: #777; font-style: italic; }
+        .checkbox-option.hidden { display: none; }
+        .empty-filter { display: none; color: #777; font-size: 0.85rem; font-style: italic; padding: 0.35rem; }
+        .checkbox-option { display: flex; align-items: center; gap: 0.55rem; padding: 0.28rem 0.35rem; font-weight: 400; cursor: pointer; }
+        .checkbox-option:hover { background: #f8e8e8; }
+        .checkbox-option input { width: auto; margin: 0; accent-color: #b82329; }
+        .hint { font-size: 0.78rem; color: #666; margin-top: 0.25rem; }
+        .btn-submit { background-color: #b82329; color: white; border: none; padding: 0.75rem 1.5rem; font-size: 1rem; border-radius: 4px; cursor: pointer; width: 100%; font-weight: 600; }
+        .btn-submit:hover { background-color: #921c21; }
+        @media (max-width: 600px) {
+            .site-header { flex-direction: column; align-items: stretch; padding: 0.75rem 1rem; gap: 0.6rem; }
+            .brand { text-align: center; line-height: 1.2; }
+            .main-nav { width: 100%; justify-content: center; flex-wrap: wrap; gap: 0.25rem; }
+            .nav-link { flex: 1 1 auto; text-align: center; padding: 0.45rem 0.35rem; font-size: 0.8rem; }
+            main { padding: 1rem; }
+            .container { padding: 1.25rem; }
+            .site-footer { padding: 0.8rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    {% include '_header.html' %}
+    <main>
+    <div class="container">
+        <h1>Formulario para la predicción de Distinción Michelin</h1>
+        <form action="/api/prediccion" method="POST">
+            
+            <div class="form-group">
+                <label for="pais">País</label>
+                <select id="pais" name="pais" required>
+                    <option value="">Selecciona un país</option>
+                    {% for pais in paises %}
+                        <option value="{{ pais.nombre }}" data-pais-id="{{ pais.id }}">{{ pais.nombre }}</option>
+                    {% endfor %}
+                </select>
+                <input type="hidden" id="pais_id" name="pais_id">
+            </div>
+
+            <div class="form-group">
+                <label for="ciudad">Ciudad</label>
+                <div class="city-autocomplete">
+                    <input type="text" id="ciudad" name="ciudad" required disabled placeholder="Primero selecciona un país" autocomplete="off">
+                    <ul id="ciudades-lista" class="city-suggestions" role="listbox"></ul>
+                </div>
+                <input type="hidden" id="ciudad_id" name="ciudad_id">
+            </div>
+
+            <div class="form-group">
+                <label for="precio">Rango de Precio</label>
+                <select id="precio" name="precio" required>
+                    <option value="0">€ (Precio ajustado)</option>
+                    <option value="1">€€ (Precio moderado)</option>
+                    <option value="2">€€€ (Para ocasión especial)</option>
+                    <option value="3">€€€€ (Sin reparar en gastos)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label id="tipos_cocina_label">Tipos de Cocina</label>
+                <input class="search-input" type="text" id="buscar-cocinas" placeholder="Buscar tipo de cocina..." autocomplete="off">
+                <div class="checkbox-list" aria-labelledby="tipos_cocina_label" data-required-group="tipos_cocina">
+                    {% for cocina in cocinas %}
+                        <label class="checkbox-option" data-search-value="{{ cocina|lower }}">
+                            <input type="checkbox" name="tipos_cocina" value="{{ cocina }}">
+                            <span>{{ cocina }}</span>
+                        </label>
+                    {% endfor %}
+                    <span class="empty-filter">No hay coincidencias.</span>
+                </div>
+                <div class="hint">Selecciona uno o varios tipos de cocina.</div>
+            </div>
+
+            <div class="form-group">
+                <label id="ideales_label">Ideales (Opcional)</label>
+                <input class="search-input" type="text" id="buscar-ideales" placeholder="Buscar ideal..." autocomplete="off">
+                <div class="checkbox-list" aria-labelledby="ideales_label">
+                    {% for ideal in ideales %}
+                        <label class="checkbox-option" data-search-value="{{ ideal|lower }}">
+                            <input type="checkbox" name="ideales" value="{{ ideal }}">
+                            <span>{{ ideal }}</span>
+                        </label>
+                    {% endfor %}
+                    <span class="empty-filter">No hay coincidencias.</span>
+                </div>
+                <div class="hint">Selecciona opcionalmente uno o varios ideales.</div>
+            </div>
+
+            <button type="submit" class="btn-submit">Realizar Predicción</button>
+        </form>
+    </div>
+    </main>
+    {% include '_footer.html' %}
+    <script>
+        const formulario = document.querySelector('form');
+        const pais = document.getElementById('pais');
+        const paisId = document.getElementById('pais_id');
+        const ciudad = document.getElementById('ciudad');
+        const ciudadId = document.getElementById('ciudad_id');
+        const ciudadesLista = document.getElementById('ciudades-lista');
+        const ciudadesPorNombre = new Map();
+        let ciudadesDisponibles = [];
+
+        function configurarBuscador(idBuscador) {
+            const buscador = document.getElementById(idBuscador);
+            const lista = buscador.nextElementSibling;
+            const opciones = Array.from(lista.querySelectorAll('.checkbox-option'));
+            const mensajeVacio = lista.querySelector('.empty-filter');
+
+            buscador.addEventListener('input', function () {
+                const termino = buscador.value.trim().toLowerCase();
+                let visibles = 0;
+                opciones.forEach(function (opcion) {
+                    const coincide = opcion.dataset.searchValue.includes(termino);
+                    opcion.classList.toggle('hidden', !coincide);
+                    visibles += coincide ? 1 : 0;
+                });
+                mensajeVacio.style.display = visibles === 0 ? 'block' : 'none';
+            });
+        }
+
+        configurarBuscador('buscar-cocinas');
+        configurarBuscador('buscar-ideales');
+
+        pais.addEventListener('change', async function () {
+            const opcionPais = pais.options[pais.selectedIndex];
+            paisId.value = opcionPais.dataset.paisId || '';
+            ciudadId.value = '';
+            ciudad.value = '';
+            ciudadesLista.innerHTML = '';
+            ciudadesLista.classList.remove('visible');
+            ciudadesPorNombre.clear();
+            ciudadesDisponibles = [];
+            ciudad.disabled = true;
+            ciudad.placeholder = 'Cargando ciudades...';
+
+            if (!paisId.value) {
+                ciudad.placeholder = 'Primero selecciona un país';
+                return;
+            }
+
+            try {
+                const respuesta = await fetch(`{{ url_for('get_ciudades') }}?pais_id=${paisId.value}`);
+                if (!respuesta.ok) {
+                    throw new Error('No se pudieron cargar las ciudades.');
+                }
+                const ciudades = await respuesta.json();
+                ciudadesDisponibles = ciudades;
+                ciudades.forEach(function (elemento) {
+                    ciudadesPorNombre.set(elemento.nombre, elemento.id);
+                });
+                ciudad.disabled = ciudades.length === 0;
+                ciudad.placeholder = ciudades.length === 0 ? 'No hay ciudades para este país' : 'Escribe o selecciona una ciudad';
+            } catch (error) {
+                ciudad.placeholder = 'Error al cargar las ciudades';
+            }
+        });
+
+        function mostrarCiudades() {
+            const termino = ciudad.value.trim().toLowerCase();
+            const coincidencias = ciudadesDisponibles.filter(function (elemento) {
+                return elemento.nombre.toLowerCase().includes(termino);
+            }).slice(0, 50);
+
+            ciudadesLista.innerHTML = '';
+            if (coincidencias.length === 0) {
+                const vacio = document.createElement('li');
+                vacio.className = 'city-empty';
+                vacio.textContent = 'No hay ciudades coincidentes';
+                ciudadesLista.appendChild(vacio);
+            } else {
+                coincidencias.forEach(function (elemento) {
+                    const opcion = document.createElement('li');
+                    opcion.className = 'city-suggestion';
+                    opcion.setAttribute('role', 'option');
+                    opcion.textContent = elemento.nombre;
+                    opcion.addEventListener('mousedown', function (event) {
+                        event.preventDefault();
+                        ciudad.value = elemento.nombre;
+                        ciudadId.value = elemento.id;
+                        ciudadesLista.classList.remove('visible');
+                    });
+                    ciudadesLista.appendChild(opcion);
+                });
+            }
+            ciudadesLista.classList.add('visible');
+        }
+
+        ciudad.addEventListener('input', function () {
+            ciudadId.value = ciudadesPorNombre.get(ciudad.value) || '';
+            if (ciudad.value.trim()) {
+                mostrarCiudades();
+            } else {
+                ciudadesLista.classList.remove('visible');
+            }
+        });
+
+        ciudad.addEventListener('focus', mostrarCiudades);
+        ciudad.addEventListener('blur', function () {
+            window.setTimeout(function () {
+                ciudadesLista.classList.remove('visible');
+            }, 150);
+        });
+
+        formulario.addEventListener('submit', function (event) {
+            const grupoCocinas = document.querySelector('[data-required-group="tipos_cocina"]');
+            if (!paisId.value || !ciudadId.value || !grupoCocinas.querySelector('input:checked')) {
+                event.preventDefault();
+                alert('Selecciona un país, una ciudad y al menos un tipo de cocina.');
+            }
+        });
+    </script>
+</body>
+</html>

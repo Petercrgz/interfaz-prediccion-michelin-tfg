@@ -1,0 +1,8 @@
+<header class="site-header">
+    <a class="brand" href="{{ url_for('index') }}">Predicción de Distinción Michelin</a>
+    <nav class="main-nav" aria-label="Navegación principal">
+        <a class="nav-link {% if request.path in ['/', '/api/prediccion'] %}active{% endif %}" href="{{ url_for('index') }}">Formulario</a>
+        <a class="nav-link {% if request.path == '/restaurantes' %}active{% endif %}" href="{{ url_for('restaurantes') }}">Restaurantes</a>
+        <a class="nav-link {% if request.path == '/admin' %}active{% endif %}" href="{{ url_for('admin') }}">Administración</a>
+    </nav>
+</header>

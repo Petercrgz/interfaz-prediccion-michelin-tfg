@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurantes</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f4f4f9; margin: 0; min-height: 100vh; color: #333; display: flex; flex-direction: column; }
+        .site-header { background: #b82329; color: white; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.85rem 2rem; }
+        .brand { color: white; font-weight: 700; text-decoration: none; }
+        .main-nav { display: flex; align-items: center; gap: 0.35rem; }
+        .nav-link { color: white; text-decoration: none; padding: 0.5rem 0.8rem; border-radius: 999px; font-size: 0.9rem; }
+        .nav-link:hover, .nav-link.active { background: white; color: #b82329; }
+        main { flex: 1; padding: 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .summary { color: #666; margin-top: -0.5rem; }
+        .filters { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 0.7rem; align-items: end; margin: 1.25rem 0 1.5rem; }
+        .filter-group { display: flex; flex-direction: column; gap: 0.35rem; }
+        .filter-group label { font-size: 0.85rem; font-weight: 600; }
+        .filter-control { width: 100%; box-sizing: border-box; padding: 0.6rem; border: 1px solid #ccc; border-radius: 4px; font: inherit; color: #333; background: #fff; }
+        .filter-button { padding: 0.6rem 0.9rem; border: 0; border-radius: 4px; background: #b82329; color: #fff; cursor: pointer; font-weight: 600; }
+        .filter-button:hover { background: #921c21; }
+        .restaurant-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1rem; }
+        .restaurant-card { border: 1px solid #eee; border-radius: 6px; padding: 1rem; background: #fff; }
+        .restaurant-card h2 { font-size: 1.05rem; margin: 0 0 0.6rem; color: #b82329; }
+        .restaurant-card p { margin: 0.45rem 0; font-size: 0.9rem; }
+        .distinction { display: flex; align-items: center; gap: 0.25rem; min-height: 34px; }
+        .distinction img { width: 30px; height: 30px; object-fit: contain; }
+        .distinction-label { color: #555; font-size: 0.82rem; }
+        .tag { display: inline-block; background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 3px; font-size: 0.8rem; margin: 0.1rem 0.2rem 0.1rem 0; }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 0.35rem; margin-top: 1.5rem; flex-wrap: wrap; }
+        .page-link { color: #b82329; border: 1px solid #e2b0b2; text-decoration: none; padding: 0.45rem 0.7rem; border-radius: 4px; font-size: 0.9rem; }
+        .page-link:hover, .page-link.active { background: #b82329; color: white; }
+        .site-footer { background: #e1e1e1; color: #555; text-align: center; padding: 1rem 2rem; font-size: 0.8rem; }
+        @media (max-width: 600px) {
+            .site-header { flex-direction: column; align-items: stretch; padding: 0.75rem 1rem; gap: 0.6rem; }
+            .brand { text-align: center; line-height: 1.2; }
+            .main-nav { width: 100%; justify-content: center; flex-wrap: wrap; gap: 0.25rem; }
+            .nav-link { flex: 1 1 auto; text-align: center; padding: 0.45rem 0.35rem; font-size: 0.8rem; }
+            main { padding: 1rem; }
+            .container { padding: 1.25rem; }
+            .filters { grid-template-columns: 1fr; }
+            .filter-button { width: 100%; }
+            .site-footer { padding: 0.8rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    {% include '_header.html' %}
+    <main>
+        <div class="container">
+            <h1>Restaurantes</h1>
+            <p class="summary">{{ total }} restaurantes · Página {{ pagina }} de {{ total_paginas }}</p>
+            <form class="filters" method="get" action="{{ url_for('restaurantes') }}">
+                <div class="filter-group">
+                    <label for="texto">Buscar</label>
+                    <input class="filter-control" id="texto" name="texto" type="text" value="{{ texto }}" placeholder="Nombre o ciudad" autocomplete="off">
+                </div>
+                <div class="filter-group">
+                    <label for="pais-filtro">País</label>
+                    <select class="filter-control" id="pais-filtro" name="pais">
+                        <option value="">Todos</option>
+                        {% for pais in paises %}
+                            <option value="{{ pais }}" {% if pais == pais_filtro %}selected{% endif %}>{{ pais }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="valoracion">Valoración</label>
+                    <select class="filter-control" id="valoracion" name="valoracion">
+                        <option value="">Todas</option>
+                        <option value="0" {% if valoracion_filtro == '0' %}selected{% endif %}>Bib Gourmand</option>
+                        <option value="1" {% if valoracion_filtro == '1' %}selected{% endif %}>1 estrella</option>
+                        <option value="2" {% if valoracion_filtro == '2' %}selected{% endif %}>2 estrellas</option>
+                        <option value="3" {% if valoracion_filtro == '3' %}selected{% endif %}>3 estrellas</option>
+                    </select>
+                </div>
+                <button class="filter-button" type="submit">Filtrar</button>
+            </form>
+            {% if restaurantes %}
+                <div class="restaurant-grid">
+                    {% for restaurante in restaurantes %}
+                        <article class="restaurant-card">
+                            <h2>{{ restaurante.nombre }}</h2>
+                            <p><strong>Ubicación:</strong> {{ restaurante.ciudad }}, {{ restaurante.pais }}</p>
+                            <p><strong>Precio:</strong> {{ restaurante.precio_texto }}</p>
+                            <p><strong>Valoración:</strong></p>
+                            <div class="distinction">
+                                {% if restaurante.valoracion == 0 %}
+                                    <img src="{{ url_for('static', filename='img/michelin-bib-gourmand.svg') }}" alt="Bib Gourmand">
+                                    <span class="distinction-label">Bib Gourmand</span>
+                                {% else %}
+                                    {% for estrella in range(restaurante.valoracion) %}
+                                        <img src="{{ url_for('static', filename='img/michelin-star.svg') }}" alt="Estrella Michelin">
+                                    {% endfor %}
+                                    <span class="distinction-label">{{ restaurante.valoracion }} {% if restaurante.valoracion == 1 %}estrella{% else %}estrellas{% endif %} Michelin</span>
+                                {% endif %}
+                            </div>
+                            <p><strong>Cocinas:</strong><br>{% for relacion in restaurante.restaurantes_cocinas %}<span class="tag">{{ relacion.cocinas.nombre }}</span>{% endfor %}</p>
+                            <p><strong>Ideales:</strong><br>
+                                {% if restaurante.restaurantes_ideales and restaurante.restaurantes_ideales|length > 0 %}
+                                    {% for relacion in restaurante.restaurantes_ideales %}
+                                        <span class="tag">{{ relacion.ideales.nombre }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span style="color: #888; font-style: italic;">Ninguno</span>
+                                {% endif %}</p>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>No hay restaurantes cargados.</p>
+            {% endif %}
+            {% if total_paginas > 1 %}
+                <nav class="pagination" aria-label="Paginación de restaurantes">
+                    {% if pagina > 1 %}<a class="page-link" href="{{ url_for('restaurantes', page=pagina - 1, texto=texto, pais=pais_filtro, valoracion=valoracion_filtro) }}">Anterior</a>{% endif %}
+                    {% for numero in paginas %}
+                        <a class="page-link {% if numero == pagina %}active{% endif %}" href="{{ url_for('restaurantes', page=numero, texto=texto, pais=pais_filtro, valoracion=valoracion_filtro) }}">{{ numero }}</a>
+                    {% endfor %}
+                    {% if pagina < total_paginas %}<a class="page-link" href="{{ url_for('restaurantes', page=pagina + 1, texto=texto, pais=pais_filtro, valoracion=valoracion_filtro) }}">Siguiente</a>{% endif %}
+                </nav>
+            {% endif %}
+        </div>
+    </main>
+    {% include '_footer.html' %}
+</body>
+</html>

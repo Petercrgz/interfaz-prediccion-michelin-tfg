@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultado de la Predicción</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f4f4f9; margin: 0; min-height: 100vh; color: #333; display: flex; flex-direction: column; }
+        .site-header { background: #b82329; color: white; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.85rem 2rem; }
+        .brand { color: white; font-weight: 700; text-decoration: none; }
+        .main-nav { display: flex; align-items: center; gap: 0.35rem; }
+        .nav-link { color: white; text-decoration: none; padding: 0.5rem 0.8rem; border-radius: 999px; font-size: 0.9rem; }
+        .nav-link:hover, .nav-link.active { background: white; color: #b82329; }
+        main { flex: 1; padding: 2rem; }
+        .site-footer { background: #e1e1e1; color: #555; text-align: center; padding: 1rem 2rem; font-size: 0.8rem; }
+        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; }
+        .badge-prediccion { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; min-height: 86px; padding: 0.8rem 1.6rem; border-radius: 6px; font-size: 1.4rem; font-weight: bold; margin: 1.5rem 0 0.5rem; background: #fdf2f2; color: #b82329; border: 1px solid #f8d7da; }
+        .badge-prediccion img { width: 58px; height: 58px; object-fit: contain; }
+        .resultado-label { margin: 0 0 1.25rem; color: #b82329; font-weight: 700; }
+        .detalles { text-align: left; margin: 1.5rem 0; background: #fafafa; border: 1px solid #eee; border-radius: 6px; padding: 1rem 1.5rem; font-size: 0.95rem; }
+        .detalles p { margin: 0.5rem 0; }
+        .detalles strong { color: #444; }
+        .tag { display: inline-block; background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 3px; font-size: 0.8rem; margin-right: 0.25rem; }
+        .btn-volver { display: inline-block; margin-top: 1rem; text-decoration: none; background: #333; color: white; padding: 0.6rem 1.2rem; border-radius: 4px; font-weight: 600; font-size: 0.9rem; }
+        .btn-volver:hover { background: #555; }
+        @media (max-width: 600px) {
+            .site-header { flex-direction: column; align-items: stretch; padding: 0.75rem 1rem; gap: 0.6rem; }
+            .brand { text-align: center; line-height: 1.2; }
+            .main-nav { width: 100%; justify-content: center; flex-wrap: wrap; gap: 0.25rem; }
+            .nav-link { flex: 1 1 auto; text-align: center; padding: 0.45rem 0.35rem; font-size: 0.8rem; }
+            main { padding: 1rem; }
+            .container { padding: 1.25rem; }
+            .site-footer { padding: 0.8rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+    {% include '_header.html' %}
+    <main>
+    <div class="container">
+        <h2>Resultado del Modelo</h2>
+
+        <div class="badge-prediccion">
+            {% if prediccion == 0 %}
+                <img src="{{ url_for('static', filename='img/michelin-bib-gourmand.svg') }}" alt="Logo Bib Gourmand">
+            {% else %}
+                {% for estrella in range(prediccion) %}
+                    <img src="{{ url_for('static', filename='img/michelin-star.svg') }}" alt="Estrella Michelin">
+                {% endfor %}
+            {% endif %}
+        </div>
+        <p class="resultado-label">
+            {% if prediccion == 0 %}
+                Bib Gourmand
+            {% else %}
+                {{ prediccion }} {% if prediccion == 1 %}estrella Michelin{% else %}estrellas Michelin{% endif %}
+            {% endif %}
+        </p>
+
+        <div class="detalles">
+            <p><strong>Ubicación:</strong> {{ ciudad }}, {{ pais }}</p>
+            <p>
+                <strong>Nivel de Precio:</strong>
+                {% if precio == 0 %}
+                    €/€€€€ (Ajustado)
+                {% elif precio == 1 %}
+                    €€/€€€€ (Moderado)
+                {% elif precio == 2 %}
+                    €€€/€€€€ (Ocasión especial)
+                {% elif precio == 3 %}
+                    €€€€/€€€€ (Sin reparar en gastos)
+                {% endif %}
+            </p>
+            <p>
+                <strong>Cocinas:</strong> 
+                {% for cocina in tipos_cocina %}
+                    <span class="tag">{{ cocina }}</span>
+                {% endfor %}
+            </p>
+            <p>
+                <strong>Ideales:</strong>
+                {% if ideales and ideales|length > 0 %}
+                    {% for ideal in ideales %}
+                        <span class="tag">{{ ideal }}</span>
+                    {% endfor %}
+                {% else %}
+                    <em>Ninguno especificado</em>
+                {% endif %}
+            </p>
+        </div>
+
+        <a href="/" class="btn-volver">← Probar con otro restaurante</a>
+    </div>
+    </main>
+    {% include '_footer.html' %}
+</body>
+</html>
