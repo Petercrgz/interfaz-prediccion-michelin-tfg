@@ -1,0 +1,9 @@
+# entorno de python virtual
+.venv/
+
+# entorno de configuración y caché
+.env
+
+__pycache__/
+modelo/__pycache__/
+archivos_modelo/
